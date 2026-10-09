@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HR LEAD: The Playable Resume — Thierry Blanc</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --bg: #07070f; --panel: #0f0f1c; --panel-2: #16162a;
+  --border: #26264a; --text: #e8e8f5; --muted: #8a8ab0;
+  --cyan: #00e0ff; --magenta: #ff2e88; --green: #00ff9d;
+  --amber: #ffb800; --blue: #2d6cff;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; overflow-x: hidden; }
+body::before { content: ''; position: fixed; inset: 0;
+  background: radial-gradient(circle at 20% 10%, rgba(0,224,255,0.08), transparent 40%),
+              radial-gradient(circle at 80% 90%, rgba(255,46,136,0.08), transparent 40%);
+  pointer-events: none; z-index: 0; }
+.grid-bg { position: fixed; inset: 0;
+  background-image: linear-gradient(rgba(0,224,255,0.04) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0,224,255,0.04) 1px, transparent 1px);
+  background-size: 40px 40px; pointer-events: none; z-index: 0;
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 90%); }
+.wrap { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: 24px 20px 80px; }
+#hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; position: relative; z-index: 1; }
+h1.title { font-family: 'Orbitron', sans-serif; font-size: clamp(36px, 8vw, 84px); font-weight: 900; letter-spacing: 2px; line-height: 1;
+  background: linear-gradient(135deg, #fff 0%, var(--cyan) 50%, var(--magenta) 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  text-transform: uppercase; margin-bottom: 16px; }
+.subtitle { font-size: clamp(14px, 2vw, 18px); color: var(--muted); max-width: 660px; margin-bottom: 40px; line-height: 1.6; }
+.subtitle strong { color: var(--text); }
+.name-tag { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 6px 14px; border: 1px solid var(--border); border-radius: 999px; color: var(--cyan); margin-bottom: 24px; letter-spacing: 2px; }
+.name-tag::before { content: '● '; color: var(--green); animation: blink 1.4s infinite; }
+@keyframes blink { 50% { opacity: 0.3; } }
+.btn { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; padding: 16px 36px; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; text-decoration: none; display: inline-flex; align-items: center; gap: 10px; }
+.btn-primary { background: linear-gradient(135deg, var(--cyan), var(--blue)); color: #001018; box-shadow: 0 0 30px rgba(0,224,255,0.4); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 50px rgba(0,224,255,0.7); }
+.btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-weight: 500; font-size: 13px; letter-spacing: 0.5px; text-transform: none; }
+.btn-ghost:hover { color: var(--text); border-color: var(--cyan); }
+.hero-actions { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.skip-hint { margin-top: 28px; font-size: 12px; color: var(--muted); }
+.skip-hint a { color: var(--cyan); text-decoration: none; border-bottom: 1px dashed var(--cyan); }
+.origin-box { margin-top: 34px; max-width: 620px; padding: 16px 22px; background: rgba(0,224,255,0.04); border: 1px dashed rgba(0,224,255,0.25); border-radius: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.8; color: var(--muted); text-align: left; }
+.origin-box strong { color: var(--cyan); font-weight: 600; }
+#game { display: none; }
+.hud { display: grid; grid-template-columns: 1fr auto; gap: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; align-items: center; }
+.hud-left { display: flex; flex-direction: column; gap: 8px; }
+.hud-mission { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--magenta); letter-spacing: 2px; text-transform: uppercase; }
+.hud-title { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 1px; }
+.progress { width: 100%; height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--cyan), var(--magenta)); transition: width 0.5s ease; box-shadow: 0 0 12px var(--cyan); }
+.stats { display: flex; gap: 18px; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+.stat { display: flex; flex-direction: column; align-items: flex-end; }
+.stat-label { color: var(--muted); font-size: 9px; letter-spacing: 1.5px; }
+.stat-value { color: var(--cyan); font-weight: 600; font-size: 14px; }
+.stat-value.hp { color: var(--green); }
+.stat-value.xp { color: var(--amber); }
+.scene { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 28px; margin-bottom: 18px; position: relative; overflow: hidden; }
+.scene::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cyan), var(--magenta), transparent); }
+.scene-icon { font-size: 40px; margin-bottom: 12px; display: block; filter: drop-shadow(0 0 20px rgba(0,224,255,0.5)); }
+.scene-brief { font-size: 15px; line-height: 1.7; color: var(--text); margin-bottom: 22px; }
+.scene-brief em { color: var(--cyan); font-style: normal; font-weight: 600; }
+.choices { display: flex; flex-direction: column; gap: 12px; }
+.choice { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; cursor: pointer; text-align: left; color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.5; transition: all 0.18s ease; display: flex; gap: 14px; align-items: flex-start; }
+.choice:hover:not(:disabled) { border-color: var(--cyan); background: rgba(0,224,255,0.06); transform: translateX(4px); }
+.choice:disabled { cursor: default; opacity: 0.55; }
+.choice .key { font-family: 'JetBrains Mono', monospace; color: var(--cyan); font-weight: 700; min-width: 20px; }
+.choice.correct { border-color: var(--green); background: rgba(0,255,157,0.08); box-shadow: 0 0 20px rgba(0,255,157,0.2); }
+.choice.wrong { border-color: var(--magenta); background: rgba(255,46,136,0.08); }
+.feedback { margin-top: 18px; padding: 18px 20px; border-radius: 8px; border-left: 3px solid var(--cyan); background: rgba(0,224,255,0.05); display: none; animation: fadeIn 0.4s ease; }
+.feedback.show { display: block; }
+.feedback.success { border-left-color: var(--green); background: rgba(0,255,157,0.06); }
+.feedback.fail { border-left-color: var(--magenta); background: rgba(255,46,136,0.06); }
+.feedback-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 2px; color: var(--cyan); margin-bottom: 8px; text-transform: uppercase; }
+.feedback.success .feedback-label { color: var(--green); }
+.feedback.fail .feedback-label { color: var(--magenta); }
+.feedback-text { font-size: 13.5px; line-height: 1.65; color: var(--text); }
+.kpi-badge { display: inline-block; margin-top: 12px; padding: 8px 14px; background: rgba(0,255,157,0.12); border: 1px solid rgba(0,255,157,0.3); border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--green); letter-spacing: 1px; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.next-wrap { display: flex; justify-content: flex-end; margin-top: 20px; }
+#victory { display: none; text-align: center; }
+.victory-title { font-family: 'Orbitron', sans-serif; font-size: clamp(28px, 5vw, 44px); font-weight: 900; background: linear-gradient(135deg, var(--green), var(--cyan)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 12px; letter-spacing: 2px; }
+.victory-sub { color: var(--muted); font-size: 15px; max-width: 660px; margin: 0 auto 30px; line-height: 1.7; }
+.victory-sub em { color: var(--cyan); font-style: normal; font-weight: 600; }
+.scoreboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin: 30px 0; }
+.score-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 20px 16px; text-align: center; }
+.score-value { font-family: 'Orbitron', sans-serif; font-size: 26px; font-weight: 900; color: var(--cyan); margin-bottom: 6px; }
+.score-label { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; }
+#dossier { margin-top: 40px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 28px; text-align: left; }
+.dossier-title { font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 2px; margin-bottom: 6px; text-transform: uppercase; color: var(--text); }
+.dossier-sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; line-height: 1.6; }
+.downloads { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.dl-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; cursor: pointer; transition: all 0.2s; text-align: left; color: var(--text); font-family: inherit; }
+.dl-card:hover { border-color: var(--cyan); background: rgba(0,224,255,0.05); transform: translateY(-2px); }
+.dl-card.loading { opacity: 0.6; pointer-events: none; }
+.dl-icon { font-size: 22px; margin-bottom: 8px; display: block; }
+.dl-title { font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase; color: var(--cyan); }
+.dl-desc { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+.on-request { margin-top: 22px; padding: 16px 20px; background: rgba(0,224,255,0.04); border: 1px dashed rgba(0,224,255,0.3); border-radius: 8px; font-size: 12px; color: var(--muted); line-height: 1.7; text-align: center; }
+.on-request strong { color: var(--cyan); font-weight: 600; }
+.contact-line { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 20px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); justify-content: center; }
+.contact-line a { color: var(--cyan); text-decoration: none; }
+.contact-line a:hover { text-decoration: underline; }
+.footer-note { text-align: center; font-size: 11px; color: #4a4a6a; margin-top: 30px; font-family: 'JetBrains Mono', monospace; }
+@media (max-width: 640px) {
+  .hud { grid-template-columns: 1fr; }
+  .stats { justify-content: space-between; }
+  .scene { padding: 20px; }
+  .scene-brief { font-size: 14px; }
+  .choice { font-size: 13px; padding: 14px 16px; }
+}
+
+/* PDF TEMPLATES */
+#pdf-templates { position: absolute; left: -99999px; top: 0; width: 210mm; z-index: -1; overflow: hidden; }
+#pdf-templates .pdf-doc {
+  --primary-blue: #002395; --dark-gray: #1A1A1A; --medium-gray: #4A4A4A; --light-gray: #71717A;
+  --bg-sidebar: #F8FAFC; --border-color: #E4E4E7; --primary-blue-light: rgba(0, 35, 149, 0.04);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #1A1A1A; -webkit-font-smoothing: antialiased;
+}
+#pdf-templates .pdf-doc * { margin: 0; padding: 0; box-sizing: border-box; }
+#pdf-templates .pdf-doc .page { width: 210mm; height: 297mm; background: white; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+#pdf-templates .pdf-doc .header { background: var(--primary-blue); height: 70px; min-height: 70px; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; color: white; }
+#pdf-templates .pdf-doc .header h1 { font-size: 16px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+#pdf-templates .pdf-doc .header-info { font-size: 10px; font-weight: 400; text-align: right; line-height: 1.5; color: rgba(255,255,255,0.9); }
+#pdf-templates .pdf-doc .header-info strong { color: white; font-weight: 600; }
+#pdf-templates .pdf-doc .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--primary-blue); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
+#pdf-templates .pdf-doc .text-body { font-size: 11px; line-height: 1.7; color: var(--medium-gray); text-align: justify; }
+#pdf-templates .pdf-doc .text-body strong { font-weight: 600; color: var(--dark-gray); }
+#pdf-templates .pdf-doc .full-page-content { padding: 35px 50px; flex: 1; }
+#pdf-templates .pdf-doc .pitch-container { padding: 40px 50px; flex: 1; display: flex; flex-direction: column; }
+#pdf-templates .pdf-doc .pitch-top { display: flex; gap: 30px; margin-bottom: 15px; align-items: flex-start; }
+#pdf-templates .pdf-doc .profile-photo { width: 130px; height: 130px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); padding: 4px; background: white; }
+#pdf-templates .pdf-doc .initials-circle { width: 130px; height: 130px; border-radius: 50%; border: 1px solid var(--border-color); padding: 4px; background: linear-gradient(135deg, #f0f4ff, #ffffff); display: flex; align-items: center; justify-content: center; font-family: 'Inter', sans-serif; font-weight: 800; font-size: 42px; color: var(--primary-blue); letter-spacing: 2px; flex-shrink: 0; }
+#pdf-templates .pdf-doc .pitch-header-text { flex: 1; padding-top: 10px; }
+#pdf-templates .pdf-doc .pitch-title { font-size: 16px; font-weight: 800; color: var(--dark-gray); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+#pdf-templates .pdf-doc .pitch-object { font-size: 11px; font-weight: 600; color: var(--primary-blue); padding-bottom: 12px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; }
+#pdf-templates .pdf-doc .signature-block { margin-top: auto; padding-top: 15px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: flex-end; }
+#pdf-templates .pdf-doc .signature-text h4 { font-size: 11px; font-weight: 700; color: var(--dark-gray); margin-bottom: 0; }
+#pdf-templates .pdf-doc .signature-text p { font-size: 9px; color: var(--light-gray); }
+#pdf-templates .pdf-doc .signature-img { height: 60px; margin-bottom: 0; mix-blend-mode: multiply; }
+#pdf-templates .pdf-doc .cv-layout { display: flex; flex: 1; }
+#pdf-templates .pdf-doc .main-column { flex: 0 0 65%; padding: 35px 40px; }
+#pdf-templates .pdf-doc .side-column { flex: 0 0 35%; background: var(--bg-sidebar); padding: 35px 30px; border-left: 1px solid var(--border-color); }
+#pdf-templates .pdf-doc .cv-main-title { font-size: 14px; font-weight: 800; color: var(--dark-gray); text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.3; margin-bottom: 8px; }
+#pdf-templates .pdf-doc .cv-subtitle-tags { display: flex; gap: 15px; font-size: 9px; font-weight: 600; color: var(--light-gray); margin-bottom: 30px; }
+#pdf-templates .pdf-doc .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+#pdf-templates .pdf-doc .kpi-item { border-top: 2px solid var(--primary-blue); background: white; padding: 12px 0; }
+#pdf-templates .pdf-doc .kpi-value { font-size: 20px; font-weight: 800; color: var(--primary-blue); margin-bottom: 4px; line-height: 1; }
+#pdf-templates .pdf-doc .kpi-label { font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--dark-gray); letter-spacing: 0.5px; margin-bottom: 4px; }
+#pdf-templates .pdf-doc .kpi-desc { font-size: 8.5px; color: var(--light-gray); line-height: 1.4; }
+#pdf-templates .pdf-doc .leadership-box { background: var(--primary-blue-light); border-left: 3px solid var(--primary-blue); padding: 15px; margin-bottom: 25px; }
+#pdf-templates .pdf-doc .leadership-box h4 { font-size: 10px; font-weight: 700; color: var(--primary-blue); text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px; }
+#pdf-templates .pdf-doc .leadership-items { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#pdf-templates .pdf-doc .leadership-item { font-size: 9px; color: var(--dark-gray); font-weight: 500; padding-left: 10px; position: relative; }
+#pdf-templates .pdf-doc .leadership-item::before { content: "→"; position: absolute; left: 0; color: var(--primary-blue); font-weight: bold; }
+#pdf-templates .pdf-doc .experience-item { margin-bottom: 25px; }
+#pdf-templates .pdf-doc .experience-item.detailed { background: #fdfdfd; border: 1px solid var(--border-color); padding: 15px; border-radius: 4px; margin-bottom: 12px; }
+#pdf-templates .pdf-doc .exp-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+#pdf-templates .pdf-doc .exp-title { font-size: 11px; font-weight: 700; color: var(--dark-gray); text-transform: uppercase; }
+#pdf-templates .pdf-doc .exp-date { font-size: 9px; font-weight: 600; color: var(--light-gray); }
+#pdf-templates .pdf-doc .exp-company { font-size: 9.5px; font-weight: 600; color: var(--primary-blue); margin-bottom: 8px; }
+#pdf-templates .pdf-doc .sub-exp-title { font-size: 10px; font-weight: 700; color: var(--dark-gray); margin-top: 12px; margin-bottom: 6px; padding-left: 10px; border-left: 2px solid var(--primary-blue); }
+#pdf-templates .pdf-doc .crisis-block { background: var(--primary-blue-light); padding: 8px 12px; margin-top: 8px; border-radius: 2px; border-left: 2px solid #eab308; }
+#pdf-templates .pdf-doc .crisis-title { font-size: 8.5px; font-weight: 700; color: var(--dark-gray); text-transform: uppercase; margin-bottom: 3px; }
+#pdf-templates .pdf-doc ul.bullet-list { list-style: none; padding-left: 15px; margin-bottom: 5px; }
+#pdf-templates .pdf-doc ul.bullet-list li { font-size: 9.5px; line-height: 1.6; color: var(--medium-gray); position: relative; margin-bottom: 4px; }
+#pdf-templates .pdf-doc ul.bullet-list li::before { content: "•"; position: absolute; left: -12px; color: var(--primary-blue); font-weight: bold; }
+#pdf-templates .pdf-doc .side-section { margin-bottom: 25px; }
+#pdf-templates .pdf-doc .side-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--primary-blue); margin-bottom: 15px; }
+#pdf-templates .pdf-doc .skill-list { list-style: none; }
+#pdf-templates .pdf-doc .skill-list li { font-size: 9px; color: var(--medium-gray); margin-bottom: 5px; padding-left: 10px; position: relative; }
+#pdf-templates .pdf-doc .skill-list li::before { content: ""; position: absolute; left: 0; top: 4px; width: 3px; height: 3px; background-color: var(--primary-blue); border-radius: 50%; }
+#pdf-templates .pdf-doc .language-item { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 4px; }
+#pdf-templates .pdf-doc .language-item span:first-child { color: var(--dark-gray); font-weight: 500; }
+#pdf-templates .pdf-doc .language-item span:last-child { color: var(--primary-blue); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="name-tag">CANDIDATE: THIERRY BLANC</div>
+  <h1 class="title">HR Lead</h1>
+  <p class="subtitle">
+    <strong>The Playable Resume.</strong> Five real situations I've handled, plus one final interview. Every answer maps to a real accountability in your job posting.
+  </p>
+  <div class="hero-actions">
+    <button class="btn btn-primary" onclick="startGame()">▶ Start Mission</button>
+    <button class="btn btn-ghost" onclick="skipToCV()">Skip to dossier →</button>
+  </div>
+  <p class="skip-hint">Short on time? <a href="#" onclick="skipToCV();return false;">Download the dossier (Cover Letter, CV, Technical Annex)</a></p>
+
+  <div class="origin-box">
+    <strong>▶ PLAYER ORIGIN — 1989 → TODAY</strong><br>
+    First keyboard: <strong>Commodore 64</strong>. Then <strong>Commodore 128D</strong>, then <strong>Amiga 500</strong>, then PC.<br>
+    In 1996, I built the entire IT infrastructure of <strong>Point 6</strong> — one of Geneva's first gaming-dedicated cyber cafés.<br>
+    Long-standing player of <strong>Ultima Online</strong>, <strong>StarCraft</strong> and <strong>Counter-Strike</strong>. Still playing.
+  </div>
+</section>
+
+<!-- GAME -->
+<main class="wrap" id="game">
+  <div class="hud">
+    <div class="hud-left">
+      <div class="hud-mission" id="hud-mission">MISSION 01 / 06</div>
+      <div class="hud-title" id="hud-title">The Launch Crunch</div>
+      <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="stat-label">TRUST</span><span class="stat-value hp" id="statTrust">100</span></div>
+      <div class="stat"><span class="stat-label">MOMENTUM</span><span class="stat-value xp" id="statXp">0</span></div>
+    </div>
+  </div>
+  <section class="scene" id="scene">
+    <span class="scene-icon" id="sceneIcon">🚀</span>
+    <div class="scene-brief" id="sceneBrief"></div>
+    <div class="choices" id="choices"></div>
+    <div class="feedback" id="feedback">
+      <div class="feedback-label" id="fbLabel"></div>
+      <div class="feedback-text" id="fbText"></div>
+      <div id="fbKpi"></div>
+    </div>
+    <div class="next-wrap" id="nextWrap" style="display:none;">
+      <button class="btn btn-primary" onclick="nextLevel()">Next Mission ▶</button>
+    </div>
+  </section>
+</main>
+
+<!-- VICTORY -->
+<section class="wrap" id="victory">
+  <h2 class="victory-title">MISSION COMPLETE</h2>
+  <p class="victory-sub">
+    Five real situations I've handled at scale, plus the final question every founder asks. I've been on both sides of this table — as a player since the Commodore 64, as the builder of Point 6 in 1996, and as the HR lead for 1,200 people. The studio that needs someone who can build systems <em>and</em> protect culture already has my number.
+  </p>
+
+  <div class="scoreboard">
+    <div class="score-card"><div class="score-value">698</div><div class="score-label">Onboarded in 30 days</div></div>
+    <div class="score-card"><div class="score-value">72h</div><div class="score-label">Payroll continuity</div></div>
+    <div class="score-card"><div class="score-value">4.75/5</div><div class="score-label">HR Service Desk CSAT</div></div>
+    <div class="score-card"><div class="score-value">1996</div><div class="score-label">Point 6 — builder</div></div>
+  </div>
+
+  <div class="dossier" id="dossier">
+    <h3 class="dossier-title">▶ Download the dossier</h3>
+    <p class="dossier-sub">Three PDFs generated live in your browser, using the original CV and cover letter templates. No trackers, no backend.</p>
+
+    <div class="downloads">
+      <button class="dl-card" onclick="downloadCoverLetter(this)">
+        <span class="dl-icon">✉️</span>
+        <div class="dl-title">Cover Letter</div>
+        <div class="dl-desc">Tailored to HR Lead — Gaming Studio, fully remote Europe.</div>
+      </button>
+      <button class="dl-card" onclick="downloadCV(this)">
+        <span class="dl-icon">📄</span>
+        <div class="dl-title">Executive CV</div>
+        <div class="dl-desc">Three pages: profile, Smood business case, earlier career.</div>
+      </button>
+      <button class="dl-card" onclick="downloadAnnex(this)">
+        <span class="dl-icon">🧩</span>
+        <div class="dl-title">Technical Annex</div>
+        <div class="dl-desc">HRIS architecture, AI-augmented HR, remote-first systems.</div>
+      </button>
+    </div>
+
+    <div class="on-request">
+      📎 <strong>Diploma, work certificate and references available on request.</strong><br>
+      Original signed certificates (Smood SA 2022–2026, RedTech Sàrl 2007–2012, emobiles Sàrl 2005–2006), Swiss Federal HR Diploma (HRSE / SEFRI), and signed reference letters from the CEO and Legal &amp; HR Director — provided upon request.
+    </div>
+
+    <div class="contact-line">
+      <span>📧 <a href="mailto:thierry.blanc@gmail.com">thierry.blanc@gmail.com</a></span>
+      <span>📱 +41 78 216 26 11</span>
+      <span>🔗 <a href="https://linkedin.com/in/thierry-blanc-rh" target="_blank" rel="noopener">linkedin.com/in/thierry-blanc-rh</a></span>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:24px;">
+    <button class="btn btn-ghost" onclick="location.reload()">↺ Replay</button>
+  </div>
+  <p class="footer-note">© Thierry Blanc — HR Lead / HRIS Architect — Geneva, Switzerland</p>
+</section>
+
+<!-- PDF TEMPLATES -->
+<div id="pdf-templates" aria-hidden="true">
+
+  <!-- Cover Letter -->
+  <div class="pdf-doc" id="pdf-cover">
+    <div class="page">
+      <header class="header">
+        <div style="display:flex; align-items:center; gap:12px;"><h1>Thierry Blanc</h1></div>
+        <div class="header-info">Swiss National (VD)<br><strong>+41 78 216 26 11</strong> | thierry.blanc@gmail.com</div>
+      </header>
+      <div class="pitch-container">
+        <div class="pitch-top">
+          <div class="initials-circle" id="cover-photo-slot">TB</div>
+          <div class="pitch-header-text">
+            <h2 class="pitch-title">Executive Cover Letter</h2>
+            <div class="pitch-object">Application : HR Lead — Gaming Studio (fully remote, Europe)</div>
+            <p class="text-body" style="margin-bottom:12px;">Dear Hiring Team,</p>
+            <p class="text-body">
+              I am applying for the HR Lead position at your studio. As a systems-oriented HR leader who has spent the past four years architecting the entire HR infrastructure of a fast-scaling Swiss tech company (Smood SA), I recognise in your job description the exact challenges I have built my career solving: full-cycle recruitment of technical and creative profiles, scalable HR operations in a distributed environment, and the human work of building trust and psychological safety across a fully remote team.
+            </p>
+          </div>
+        </div>
+        <p class="text-body" style="margin-bottom:11px;">
+          I'll start with the part no other candidate will lead with. I was born into this industry. My first computer was a <strong>Commodore 64</strong>; then a <strong>Commodore 128D</strong>, then an <strong>Amiga 500</strong>, then PC. In 1996, I built the entire IT infrastructure of <strong>Point 6</strong> — one of Geneva's first gaming-dedicated cyber cafés. I've played <strong>Ultima Online</strong>, <strong>StarCraft</strong> and <strong>Counter-Strike</strong> for decades. This isn't a pivot for me. It's where I started.
+        </p>
+        <p class="text-body" style="margin-bottom:11px;">
+          Professionally, at Smood I owned the full employee lifecycle for up to <strong>1,200 employees</strong> — from workforce planning and recruitment through onboarding, employee relations, development and offboarding. I rebuilt a structurally underperforming HR function (0.45% HR ratio vs. 1.7–3% market benchmark), scaled onboarding to <strong>698 employees in 30 days</strong> during an M&amp;A operation, and personally led the emergency reconstruction of 900 payslips in 72 hours when our cloud payroll provider failed — zero payment delays. I deployed <strong>Jira Service Management</strong> as the HR ticketing backbone, achieved a <strong>4.75/5 CSAT</strong> on the HR Service Desk, and sustained that through a union negotiation.
+        </p>
+        <p class="text-body" style="margin-bottom:11px;">
+          Your posting highlights three things I want to speak to directly. <strong>First, hands-on full-cycle recruitment:</strong> I ran pipelines at up to 200 hires per month, designed structured interviews with scorecards and technical assessments, and built the candidate experience from scratch. I use <strong>AI tools daily</strong> — my most recent project is a Mistral-powered forensic HR data platform, detailed in the attached Technical Annex — and I work inside <strong>Jira, Confluence and Slack</strong> as the natural rhythm of a structured async culture. <strong>Second, scalable HR ops in a fully remote, cross-disciplinary environment:</strong> I designed "compliance by design" systems that encode Swiss labour law directly into workflows, so the HR function scales without adding headcount. <strong>Third, a trusted, neutral point of contact:</strong> I have handled sensitive terminations, mediated conflict, negotiated a social plan with the Syndicom union, and interfaced with external counsel on dismissal law.
+        </p>
+        <p class="text-body" style="margin-bottom:11px;">
+          My English is operational and improving daily — I'm comfortable in written exchanges, meetings, and written documentation, and I'm actively rebuilding the fluency I had earlier in my career. French is my native language, I speak fluent Albanian, and I have basic German. Based in Geneva, immediately available, and fully equipped to work remotely across Europe. I would welcome the chance to discuss how my experience — and my long-standing roots in this industry — can help your studio scale its team without losing its culture.
+        </p>
+        <p class="text-body" style="margin-bottom:0;">Yours sincerely,</p>
+        <div class="signature-block">
+          <div class="signature-text">
+            <div id="cover-signature-slot"></div>
+            <h4>THIERRY BLANC</h4>
+            <p>HR Specialist with Federal Diploma of Higher Education</p>
+          </div>
+          <div class="signature-text" style="text-align:right;">
+            <p>Rue des Voisins 11</p>
+            <p style="margin-bottom:15px;">CH-1205 Geneva</p>
+            <p>linkedin.com/in/thierry-blanc-rh</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CV Page 1 -->
+  <div class="pdf-doc" id="pdf-cv-1">
+    <div class="page">
+      <header class="header">
+        <h1>Thierry Blanc</h1>
+        <div class="header-info">Executive Profile<br><strong>HR Lead &amp; HRIS Architect</strong></div>
+      </header>
+      <div class="cv-layout">
+        <div class="main-column">
+          <div class="cv-main-title">Finance- and systems-oriented HR leader, a natural partner to the CFO and the founder for securing compliance and accelerating the technological evolution of the HR function in a fully remote organisation.</div>
+          <div class="cv-subtitle-tags"><span>SWISS FEDERAL HR DIPLOMA (HRSE / SEFRI)</span><span>·</span><span>FULLY REMOTE-READY (EUROPE)</span><span>·</span><span>FR · EN · DE · SQ</span></div>
+          <div class="kpi-grid">
+            <div class="kpi-item"><div class="kpi-value">1,200+</div><div class="kpi-label">Employees Under Management</div><div class="kpi-desc">Operational &amp; multi-canton payroll (GE/NE/BS/TI) for the entire workforce.</div></div>
+            <div class="kpi-item"><div class="kpi-value">698</div><div class="kpi-label">Onboardings in 30 Days</div><div class="kpi-desc">Full HR integration (contracts, permits, payroll) during an M&amp;A operation.</div></div>
+            <div class="kpi-item"><div class="kpi-value">331 kCHF</div><div class="kpi-label">Capex Savings</div><div class="kpi-desc">Winbiz outage, time-tracking &amp; SODF/SECO offboarding tools, Swisscom proposal avoided.</div></div>
+            <div class="kpi-item"><div class="kpi-value">228 kCHF</div><div class="kpi-label">Opex Savings / Year</div><div class="kpi-desc">3 positions avoided + ~30k/y consulting avoided on SwissSalary/MSBC updates.</div></div>
+            <div class="kpi-item"><div class="kpi-value">72h</div><div class="kpi-label">Payroll Continuity Post-Incident</div><div class="kpi-desc">Manual payroll reconstruction for 900 employees under pressure (Winbiz, 2022).</div></div>
+            <div class="kpi-item"><div class="kpi-value">4.75/5</div><div class="kpi-label">HR Service Desk CSAT</div><div class="kpi-desc">12-month score, maintained despite a union crisis (combined avg 4.24/5).</div></div>
+          </div>
+          <div class="leadership-box">
+            <h4>Core Positioning</h4>
+            <div class="leadership-items">
+              <div class="leadership-item">Full-Cycle Tech &amp; Creative Recruitment</div>
+              <div class="leadership-item">Structured Hiring &amp; Scorecards</div>
+              <div class="leadership-item">Comp&amp;Ben &amp; Offer Negotiation</div>
+              <div class="leadership-item">HR Legal &amp; Compliance by Design</div>
+              <div class="leadership-item">Jira · Confluence · Slack</div>
+              <div class="leadership-item">Daily AI-Augmented Workflows</div>
+              <div class="leadership-item">Remote &amp; Cross-Border HR Ops</div>
+              <div class="leadership-item">Neutral Employee Partner</div>
+            </div>
+          </div>
+          <h3 class="section-title">Profile</h3>
+          <p class="text-body">HR leader with <strong>10+ years</strong> across Swiss HR, HRIS and payroll operations. Proven track record building HR infrastructure from zero in a hyper-growth tech scale-up: full-cycle recruitment at up to 200 hires/month, 698 onboardings in 30 days during M&amp;A, 1,200 employees under payroll management, and a 72-hour emergency payroll continuity plan with zero missed payments. French native, operational English, fluent Albanian, basic German. Immediately available for a <strong>fully remote role across Europe</strong>.</p>
+          <h3 class="section-title" style="margin-top:18px;">Gaming Background</h3>
+          <p class="text-body">Born into gaming — first computer: <strong>Commodore 64</strong>, then <strong>Commodore 128D</strong>, then <strong>Amiga 500</strong>, then PC. In <strong>1996</strong>, built the entire IT infrastructure of <strong>Point 6</strong> — one of Geneva's first gaming-dedicated cyber cafés. Long-standing player of <strong>Ultima Online</strong>, <strong>StarCraft</strong> and <strong>Counter-Strike</strong>. Understands the codes, the culture, and the player mindset from the inside — not as an observer.</p>
+        </div>
+        <div class="side-column">
+          <div class="side-section"><div class="side-title">Contact</div><ul class="skill-list"><li>Rue des Voisins 11, 1205 Geneva</li><li>+41 78 216 26 11</li><li>thierry.blanc@gmail.com</li><li>linkedin.com/in/thierry-blanc-rh</li></ul></div>
+          <div class="side-section"><div class="side-title">Market Status</div><ul class="skill-list"><li>Immediately available</li><li>Permanent role only</li><li>Fully remote across Europe</li><li>Switzerland (GE–BS–ZH) on-site OK</li></ul></div>
+          <div class="side-section"><div class="side-title">Languages</div>
+            <div class="language-item"><span>French</span><span>Native</span></div>
+            <div class="language-item"><span>English</span><span>Operational</span></div>
+            <div class="language-item"><span>German</span><span>Basic</span></div>
+            <div class="language-item"><span>Albanian</span><span>Fluent</span></div>
+          </div>
+          <div class="side-section"><div class="side-title">Tech &amp; Tools</div><ul class="skill-list"><li>Jira Service Management · Confluence</li><li>Slack · MS 365 · Google Workspace</li><li>MS Dynamics 365 BC · SwissSalary</li><li>DocuSign · Metabase · Power BI</li><li>REST API · OData v4 · ETL · OAuth2</li><li>Mistral AI · LLM pipelines · DuckDB</li></ul></div>
+          <div class="side-section"><div class="side-title">Education</div><ul class="skill-list"><li>Swiss Federal HR Diploma (HRSE / SEFRI)</li><li>Brevet fédéral RH — in progress</li><li>MOOC AI &amp; HR — Unow (2024)</li></ul></div>
+          <div class="side-section"><div class="side-title">On Request</div><ul class="skill-list"><li>Diploma</li><li>Work certificates</li><li>References</li></ul></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CV Page 2 -->
+  <div class="pdf-doc" id="pdf-cv-2">
+    <div class="page">
+      <header class="header"><h1>Thierry Blanc</h1><div class="header-info">Professional Experience (1/2)</div></header>
+      <div class="full-page-content">
+        <h3 class="section-title">Business Case: Hyper-Growth, M&amp;A and Crisis Management</h3>
+        <div class="experience-item">
+          <div class="exp-header"><div class="exp-title">HRIS Director &amp; HR Manager</div><div class="exp-date">Apr. 2022 – Apr. 2026</div></div>
+          <div class="exp-company">SMOOD SA (Migros Group), Geneva — Business Closure</div>
+          <p class="text-body" style="margin-bottom:8px;">Led the strategic and operational HR function for a multi-canton organisation (up to 1,200 employees per year), overseeing HR teams, payroll governance and institutional relations. Simultaneously acted as Product Owner for the HRIS and ERP Project Lead (MS Dynamics 365 Business Central + SwissSalary), ensuring compliance, data integrity and payroll continuity during critical incidents.</p>
+          <div class="experience-item detailed">
+            <h4 class="sub-exp-title">HR Platform &amp; Admin-HR (Product Ownership)</h4>
+            <ul class="bullet-list">
+              <li>Designed and deployed the internal Admin-HR platform: onboarding, automated contract generation (DocuSign), permit tracking, offboarding and mobile employee profiles.</li>
+              <li>API integration enabling real-time synchronisation between the internal platform and MSBC SwissSalary (Product Owner, REST API / OAuth2).</li>
+              <li>Automations: DocuSign batch generation, monthly payroll exports, ETL GTA for Shyfter → MSBC synchronisation.</li>
+              <li><strong>Implemented a vacation accrual system</strong> for hourly staff with mobile display and monthly export for payroll processing.</li>
+            </ul>
+          </div>
+          <div class="experience-item detailed">
+            <h4 class="sub-exp-title">HR Operations, M&amp;A &amp; Large-Scale Onboarding</h4>
+            <ul class="bullet-list">
+              <li>M&amp;A integration: onboarding of 698 employees in 30 days; batch contract generation and dispatch; permit management and KYC.</li>
+              <li>Recruitment industrialisation: processes for 200 hires/month and creation of an HR Service Desk (Jira Service Management).</li>
+              <li>Payroll continuity plan: manual and forensic reconstruction of 900 payslips in Excel during a Winbiz outage (payments secured within 72 hours).</li>
+            </ul>
+            <div class="crisis-block">
+              <div class="crisis-title">Crisis Management &amp; Business Continuity</div>
+              <p class="text-body" style="font-size:9px;">Full operational takeover during a critical payroll system failure: manual calculations, banking coordination, internal and external communication — zero payment delays.</p>
+            </div>
+          </div>
+          <div class="experience-item detailed">
+            <h4 class="sub-exp-title">Compensation &amp; Payroll Governance</h4>
+            <ul class="bullet-list">
+              <li>Managed payroll mass up to CHF 20M/year; monthly batch validation; anti-fraud controls and internal audits.</li>
+              <li>Designed multi-canton salary grids; financial discrepancy arbitration for senior management.</li>
+              <li>BI reporting: Cost-per-Order (CPO) calculation to support operational profitability with the CFO.</li>
+            </ul>
+          </div>
+          <div class="experience-item detailed">
+            <h4 class="sub-exp-title">Compliance, Audits &amp; Institutional Relations</h4>
+            <ul class="bullet-list">
+              <li>Prepared and managed OCIRT/OCE inspections; work permit audits; compliance with LTr/CO/CCT.</li>
+              <li>Primary interface with cantonal authorities (ORP/OCE/Labour Inspectorate) and employer representative in negotiations.</li>
+              <li>Implemented "Compliance by Design" safeguards translating Swiss labour law into executable system rules.</li>
+            </ul>
+          </div>
+          <div class="experience-item detailed">
+            <h4 class="sub-exp-title">HRIS &amp; Technical Integrations</h4>
+            <ul class="bullet-list">
+              <li>Project Lead for MS Dynamics 365 BC + SwissSalary implementation; multi-canton configuration (salaried &amp; hourly).</li>
+              <li>Migration TimeMoto → Shyfter; user training; improved tracking of remote work and absences.</li>
+              <li>Developed ETL (GTA), Google Apps Script, JSON/XML exports for authorities and integrations.</li>
+              <li>Integrated HubSpot + DocuSign for automated commercial contract workflows.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CV Page 3 -->
+  <div class="pdf-doc" id="pdf-cv-3">
+    <div class="page">
+      <header class="header"><h1>Thierry Blanc</h1><div class="header-info">Professional Experience (2/2)</div></header>
+      <div class="full-page-content">
+        <h3 class="section-title">Selected Professional Background</h3>
+        <div class="experience-item">
+          <div class="exp-header"><div class="exp-title">HR Consultant &amp; ERP Integrator (Freelance)</div><div class="exp-date">Mar. 2012 – Dec. 2021</div></div>
+          <div class="exp-company">Freelance, Geneva</div>
+          <p class="text-body" style="margin-bottom:10px;">Strategic and operational advisory for SMEs across French-speaking Switzerland: HR/payroll audits, ERP implementation (Crésus, Sage, Winbiz, OfficeMaker), data migrations, user training and optimisation of HR processes.</p>
+          <ul class="bullet-list">
+            <li>ERP/CRM implementation and configuration; automation and user training.</li>
+            <li>Full payroll and social insurance administration for SME clients.</li>
+            <li>Support in HR structuring and legal compliance alignment.</li>
+          </ul>
+        </div>
+        <div class="experience-item">
+          <div class="exp-header"><div class="exp-title">Founder &amp; Managing Director</div><div class="exp-date">Jan. 2007 – Feb. 2012</div></div>
+          <div class="exp-company">RedTech Sàrl, Geneva</div>
+          <p class="text-body" style="margin-bottom:10px;">Founded and led an IT/telecom company (5 employees). Oversaw operations, HR, sales, ERP/CRM implementation, maintenance, support and staff training. Successfully sold the company to a Geneva-based firm.</p>
+        </div>
+        <div class="experience-item">
+          <div class="exp-header"><div class="exp-title">Director (Mandate)</div><div class="exp-date">Sep. 2005 – Dec. 2006</div></div>
+          <div class="exp-company">emobiles Sàrl, Nyon</div>
+          <p class="text-body" style="margin-bottom:10px;">Launched and managed an IT &amp; telecom retail store: recruitment, administrative management, Sage-Winware implementation, partnership negotiations (Orange, Sunrise), technical support and apprentice training.</p>
+        </div>
+        <div class="experience-item">
+          <div class="exp-header"><div class="exp-title">IT Infrastructure Builder — Point 6 (Cyber Café)</div><div class="exp-date">1996 – 1998</div></div>
+          <div class="exp-company">Point 6, Geneva — one of the first gaming-dedicated cyber cafés in the city</div>
+          <p class="text-body" style="margin-bottom:10px;">Built the entire IT infrastructure end-to-end: LAN, workstations, network sharing, game server hosting. The venue became a reference point for the Geneva gaming community in the late 90s.</p>
+        </div>
+        <div class="experience-item">
+          <div class="exp-header"><div class="exp-title">Technical Sales / IT Consultant</div><div class="exp-date">Mar. 2003 – Aug. 2005</div></div>
+          <div class="exp-company">Sweetcom Sàrl, Geneva</div>
+          <p class="text-body" style="margin-bottom:10px;">B2B/B2C sales, IT solution deployment, OfficeMaker ERP implementation, creation of a service desk using FileMaker Pro, telecom operator partnerships.</p>
+        </div>
+        <div class="experience-item">
+          <div class="exp-header"><div class="exp-title">IT Missions (Support &amp; Deployment)</div><div class="exp-date">2003 – 2009 (recurring missions)</div></div>
+          <div class="exp-company">Christie's (International) SA, Geneva</div>
+          <p class="text-body" style="margin-bottom:10px;">Deployment of temporary networks (50 workstations), user support, Cisco router configuration, participation in the rollout of Christie's LIVE for auction events.</p>
+        </div>
+        <h3 class="section-title" style="margin-top:18px;">Key Achievements &amp; Technical Highlights</h3>
+        <ul class="bullet-list">
+          <li>Implemented a vacation accrual system for hourly staff, including mobile display and payroll export.</li>
+          <li>Product Ownership of MSBC SwissSalary + API; real-time integration with internal platform.</li>
+          <li>Migration TimeMoto → Shyfter; ETL GTA development for time synchronisation.</li>
+          <li>Forensic payroll reconstruction (900 payslips) and full payment continuity within 72 hours.</li>
+          <li>M&amp;A onboarding: 698 employees integrated in 30 days; batch contract generation via DocuSign.</li>
+          <li>HR BI reporting: CPO and HR/Operations cost analytics for financial steering.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Technical Annex 1 -->
+  <div class="pdf-doc" id="pdf-annex-1">
+    <div class="page">
+      <header class="header"><h1>Thierry Blanc</h1><div class="header-info">Technical Annex — HR Systems &amp; AI Architecture<br>Application: HR Lead, Gaming Studio (fully remote, Europe)</div></header>
+      <div class="full-page-content">
+        <h3 class="section-title">0. Player Origin — Why This Studio</h3>
+        <p class="text-body" style="margin-bottom:8px;">Before HR, before ERP, before any of the systems in this annex — there was the <strong>Commodore 64</strong>. Then a <strong>Commodore 128D</strong>, then an <strong>Amiga 500</strong>, then PC. In <strong>1996</strong>, I built the entire IT infrastructure of <strong>Point 6</strong>, one of Geneva's first gaming-dedicated cyber cafés: LAN, workstations, network sharing, game-server hosting for a community that would otherwise have had nowhere to play.</p>
+        <p class="text-body" style="margin-bottom:8px;">Thirty years later, the games have changed — <strong>Ultima Online</strong>, <strong>StarCraft</strong> and <strong>Counter-Strike</strong> have given way to new titles — but the culture hasn't. I understand what a player feels when the netcode lags, when matchmaking fails, when a patch breaks the meta. I also understand what a remote studio needs to keep that culture alive across six time zones. This annex is not a pivot. It's a continuation.</p>
+
+        <h3 class="section-title" style="margin-top:18px;">1. Role, Scope &amp; Purpose</h3>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Business Lead / HRIS Architect</strong> — functional design, specification, backlog prioritisation and delivery governance of the HR ecosystem described in this annex, built with an internal dev team. I am the business owner and functional architect — not the developer, but the person accountable for what gets built, why, and how it survives after I leave.</p>
+        <p class="text-body" style="margin-bottom:8px;">Modular ecosystem covering the full employee lifecycle for ~1,200 employees across 11 cantons: onboarding, time &amp; attendance, payroll, legal compliance, offboarding and HR BI. Four modules — <strong>Admin-HR, GTA, SODF, BridgeGTA</strong> — sit on a Swiss ERP/Payroll core (Microsoft Dynamics 365 BC + SwissSalary) and Google Workspace, integrated via REST/OData APIs to e-signature, service desk, scheduling and BI tools.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Strategic impact (2022–2026):</strong> beyond software architecture, this operating model was the engine of a broader stabilisation. The organisation began this period with labour disputes tied to an understaffed HR function (0.45% HR-to-headcount ratio); the diagnostic-driven operating model and automation described here helped shift it onto a structured, data-driven footing — supporting a full national wind-down in 2026 covering 427 employees, executed through a social plan in a calm, constructive climate.</p>
+        <p class="text-body"><strong>Why this matters for a fully remote game studio:</strong> the mandate asks for structured hiring at speed, scalable HR ops in a distributed environment, and a daily AI-first mindset. This annex is the evidence — the <em>diagnose → design → automate → govern</em> method, illustrated module by module, plus a Mistral-powered forensic HR data platform that demonstrates hands-on daily AI integration.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Technical Annex 2 -->
+  <div class="pdf-doc" id="pdf-annex-2">
+    <div class="page">
+      <header class="header"><h1>Thierry Blanc</h1><div class="header-info">Technical Annex (2/4)</div></header>
+      <div class="full-page-content">
+        <h3 class="section-title">2. Admin-HR — HR Portal (Service Delivery &amp; Exception Management)</h3>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Exception-based dashboard:</strong> pending/processing/expiring documents, riders to validate, contractless workers, pending employer documents — HR works a queue of exceptions instead of searching case by case.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Document governance:</strong> 6 mandatory document types (ID, driving license, IBAN, health insurance, employee file, vehicle file) and 7 optional types (work-permit request, criminal record, proof of residence, etc.), each independently configurable.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>State-machine employee file:</strong> Pending → Validated/Rejected (with reason shown to the employee) → Verified → Archived; same pattern reused for engagement status (Pending → Verified → ReadyToWork → Suspended → Ended).</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Cross-system integration:</strong> Ops data (shift attendance, scheduling status) surfaced directly on the HR profile — one screen instead of two systems.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Service delivery:</strong> integrated ticketing (Jira Service Management) with FAQ self-service; 10,578 self-service views vs. only 116 tickets escalated to a human in 12 months.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Measured outcome:</strong> 1,200 employees managed, zero compliance flags across state audits, 4.75/5 satisfaction sustained through a union relations crisis.</p>
+
+        <h3 class="section-title" style="margin-top:18px;">3. GTA — Time &amp; Attendance Engine (Compliance Automation)</h3>
+        <p class="text-body" style="margin-bottom:8px;"><strong>ETL pipeline:</strong> pulls schedules/clock-ins from the scheduling tool by department in 14–30 day chunks; anti-ghost-data filtering; pagination up to 2,000 pages; exponential-backoff retry on rate-limit errors.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Reconciliation logic:</strong> matches a clock-in to its shift by ID or by a 2h/14h time-proximity window; generates a virtual punch when a paid absence has no clock-in; merges orphan punches into a hybrid record.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Legal-rules engine:</strong> vacation rights computed per segment (age, activity rate, profile change) — 20/25 base days, ×1.4 factor for 7-day rotations, pro-rata reduction rules for sickness/pregnancy/unpaid leave; rest-time, span and break-length compliance checked automatically against Swiss labour law thresholds; cross-border telework capped and tracked with automatic renewal alerts.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Hour-balance engine:</strong> separates structural gap (employer under-scheduled) from employee-caused shortfall — protects both compliance and fairness.</p>
+        <p class="text-body"><strong>Resilience:</strong> self-relaunching job that checkpoints its own progress before a runtime timeout, then resumes automatically; batched writes (500 rows) with duplicate-proof keys; forced text formatting to avoid spreadsheet date-conversion bugs on long durations.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Technical Annex 3 -->
+  <div class="pdf-doc" id="pdf-annex-3">
+    <div class="page">
+      <header class="header"><h1>Thierry Blanc</h1><div class="header-info">Technical Annex (3/4)</div></header>
+      <div class="full-page-content">
+        <h3 class="section-title">4. SODF &amp; BridgeGTA — Offboarding, Legal Documents &amp; Architecture Discipline</h3>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Legal termination engine:</strong> computes the legally protected termination date, applying statutory protection-period rules (illness/accident, pregnancy) with day-count precision, and suspends notice periods automatically when protection applies.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Severance/social-plan calculator:</strong> computes indemnity from seniority, age and dependents; includes a controlled manual-override workflow with full audit trail for edge cases.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Official forms:</strong> auto-generates statutory employer certificates (domestic and cross-border versions) and unemployment-office annexes, with conditional field-mapping for special cases (partial pay, meal allowance averaging).</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Historical payslip reconstruction:</strong> multi-year salary-account rebuild across a legacy and a current payroll system, with pagination and translation handling.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Interconnection layer (BridgeGTA):</strong> exposes narrow, purpose-built services between GTA and SODF instead of duplicating data — each module keeps one clear source of truth.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Security posture:</strong> zero hard-coded secrets (OAuth2 tokens/API keys held in a secure properties store), token caching, and an anti-crash safeguard that refuses to overwrite the employee database if an API call returns a suspiciously small dataset.</p>
+        <p class="text-body"><strong>External validation:</strong> reviewed by an independent Microsoft Dynamics audit firm (DBE — Dynamics Business Excellence SA, Dec. 2024), which confirmed the architecture and attributed the platform build directly to me by name.</p>
+
+        <h3 class="section-title" style="margin-top:18px;">5. Smood_legal — Mistral-Powered Forensic HR Data Platform</h3>
+        <p class="text-body" style="margin-bottom:8px;">A standalone project demonstrating <strong>daily, hands-on AI integration</strong> in HR — beyond tool awareness. Built end-to-end in Python, from ingestion to LLM-classified evidence and a Flask review interface, for a live HR legal case involving ~14,000 emails, ~3,600 chat messages, ~526 Jira tickets and ~838 documents.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Multi-source ingestion pipeline:</strong> 4 raw sources (eml, chats, Jira CSV, documents with OCR) normalised to JSONL, loaded into a DuckDB forensic database with typed schemas and idempotent re-runs.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>LLM classification at scale (Mistral Small):</strong> every item (email, chat topic, Jira ticket, document) is qualified by closed-vocabulary prompts — actual level exercised, legal qualification, legal basis, evidence type, party impact (charge/discharge/mixed/neutral). Two-pass + double-check pattern with token accounting per run.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Time &amp; attendance reconstruction:</strong> a parallel pipeline ingests TimeMoto exports, computes a strict median (9h56), audits abnormal days with an LLM rule engine (R1–R5), and produces a 903-day calendar with a full audit trail per day.</p>
+        <p class="text-body" style="margin-bottom:8px;"><strong>Legal costing engine:</strong> 3 juridical scenarios (contract clause valid / invalidated / mixed statutory), computing overtime and statutory working-time premiums year by year, with a 60h/year threshold (LTr art. 13 al. 1) and Swiss case law applied (ATF 4A_337/2024).</p>
+        <p class="text-body"><strong>Delivery:</strong> Flask SPA with 8 tabs, a native PDF generator (fpdf2) producing juridical-grade timesheets, and a job runner with a clean stop-flag for LLM batches.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Technical Annex 4 -->
+  <div class="pdf-doc" id="pdf-annex-4">
+    <div class="page">
+      <header class="header"><h1>Thierry Blanc</h1><div class="header-info">Technical Annex (4/4)</div></header>
+      <div class="full-page-content">
+        <h3 class="section-title">6. Applying This Method to a Fully Remote Game Studio</h3>
+        <p class="text-body" style="margin-bottom:10px;">Not a transplant of these systems — a repeatable method matched to the HR Lead mandate's own pillars:</p>
+        <ul class="bullet-list">
+          <li><strong>Full-cycle recruitment at speed</strong> — the same discipline applied to 200 hires/month at Smood, transposed to senior technical and creative profiles: intake → role definition → structured scorecards → technical assessments → offer design → closing. Roles differ; rigour doesn't.</li>
+          <li><strong>Structured hiring &amp; manager coaching</strong> — HR owns the framework, managers own the decision. The framework prevents referral bias, protects internal salary consistency, and keeps the candidate experience high under volume.</li>
+          <li><strong>Offer design &amp; salary benchmarking</strong> — I built the ERP business case that anchored budget discipline across 11 cantons; the same total-comp framing (base + equity/bonus + remote flexibility + growth path) is how you close a lead gameplay engineer without breaking the internal grid.</li>
+          <li><strong>AI-augmented HR — daily, not theoretical</strong> — Smood_legal is not a slide deck: it's a live platform parsing thousands of HR items with Mistral, keeping humans on the decisions that matter. Same posture applied to sourcing, screening, drafting and triage.</li>
+          <li><strong>Remote-first HR infrastructure</strong> — Jira Service Management, Confluence, Slack as the backbone; asynchronous-by-default rhythms; "compliance by design" so legal rules scale without adding headcount.</li>
+          <li><strong>Neutral employee partner &amp; culture protection</strong> — social plan negotiation with the Syndicom union, external counsel interface on dismissal law, HR Service Desk CSAT 4.75/5 sustained through the crisis. Trust is measurable; it's not a soft metric.</li>
+          <li><strong>Player mindset</strong> — thirty years in this culture, from the C64 to Point 6 to modern competitive play. I understand what your players feel when a patch breaks the meta. That's not a bonus — it's the context that makes every HR decision sharper.</li>
+        </ul>
+        <div class="leadership-box" style="margin-top:22px;">
+          <h4>Direct Mapping to the Job Description</h4>
+          <div class="leadership-items">
+            <div class="leadership-item">Full-cycle recruitment — technical + creative</div>
+            <div class="leadership-item">Structured interviews &amp; scorecards</div>
+            <div class="leadership-item">Offer design &amp; salary benchmarking</div>
+            <div class="leadership-item">Daily AI tools — sourcing, screening, drafting</div>
+            <div class="leadership-item">Jira · Confluence · Slack — native</div>
+            <div class="leadership-item">Remote &amp; cross-border HR operations</div>
+            <div class="leadership-item">Neutral partner — mediation, attrition signals</div>
+            <div class="leadership-item">Culture, psychological safety, retention</div>
+          </div>
+        </div>
+        <h3 class="section-title" style="margin-top:22px;">7. Availability &amp; Terms</h3>
+        <p class="text-body" style="margin-bottom:8px;">Immediately available. Permanent role only. Fully remote across Europe, or on-site in Switzerland (Geneva–Basel–Zurich). Languages: French native, English operational, fluent Albanian, basic German.</p>
+        <p class="text-body" style="font-style:italic;color:var(--light-gray);font-size:9.5px;">Diploma, work certificates and signed references available on request — Smood SA (2022–2026), RedTech Sàrl (2007–2012), emobiles Sàrl (2005–2006), Swiss Federal HR Diploma (HRSE / SEFRI).</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     1) image.js — external. Loads photoBase64 / signatureBase64 as
+        top-level `const` (not on window). We'll read them via typeof.
+     ============================================================ -->
+<script src="image.js" onerror="console.warn('image.js not found — using fallback initials for photo, no signature.');"></script>
+
+<!-- ============================================================
+     2) GAME LOGIC
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  const LEVELS = [
+    {
+      icon: "🚀",
+      title: "The Launch Crunch",
+      brief: `Your studio just signed a publishing deal. You need <em>40 developers, artists and QA testers</em> in <strong>3 weeks</strong> — fully remote, spread across Europe. The clock is already ticking. What do you do?`,
+      choices: [
+        { text: "Post on LinkedIn and hope for the best.", correct: false,
+          feedback: "Three weeks pass. You have 6 CVs, 2 ghosted candidates, and a very nervous producer.", kpi: null },
+        { text: "Hire 3 external recruiters at €25k/month each.", correct: false,
+          feedback: "Burning €75k/month on agencies before you have a single hire is not a scalable strategy — it's a rescue plan disguised as one.", kpi: null },
+        { text: "Deploy a structured pipeline: scorecards, structured interviews, technical assessments, DocuSign batch contracts.", correct: true,
+          feedback: "That's exactly how I ran the M&A integration at Smood. Structured intake, calibrated scorecards, automated contract generation — and I personally onboarded 698 people in 30 days with zero operational friction.",
+          kpi: "698 ONBOARDED IN 30 DAYS — ZERO FRICTION" }
+      ]
+    },
+    {
+      icon: "⚡",
+      title: "The Payroll Blackout",
+      brief: `It's the 27th. Your cloud payroll provider <em>crashes hard</em>. 900 people expect their salary in <strong>3 days</strong>. The vendor's support line goes to voicemail. What do you do?`,
+      choices: [
+        { text: "Send an email explaining the situation and hope for patience.", correct: false,
+          feedback: "Payroll is not a communication problem. It's a trust problem. Missing a single salary payment destroys a year of employer branding.", kpi: null },
+        { text: "Manually rebuild 900 payslips in Excel, coordinate with the bank, and cut over to the target ERP in parallel.", correct: true,
+          feedback: "That's the Winbiz incident, November 2022. I rebuilt the entire payroll engine in a forensic Excel middleware — fixed salaries, hourly rates, Sunday premiums, overtime, bonuses, penalties, family allowances. Payments went out on time. An independent audit later validated the ERP migration architecture.",
+          kpi: "72H — ZERO MISSED PAYMENTS" },
+        { text: "Outsource everything to a local accountant.", correct: false,
+          feedback: "By the time they understand your pay model, the 30th has passed. This is a continuity problem — you need someone in-house who owns it.", kpi: null }
+      ]
+    },
+    {
+      icon: "🎫",
+      title: "The Ticket Avalanche",
+      brief: `HR inbox: <em>500+ unread messages</em>. Average response time: 6 days. Employees are frustrated, managers are escalating on Slack, and someone just wrote "HR never answers" in the all-hands channel. Your move.`,
+      choices: [
+        { text: "Hire 2 more HR assistants.", correct: false,
+          feedback: "Adding headcount to a broken process just scales the chaos. And it costs you ~€10k/month you'll never recover.", kpi: null },
+        { text: "Deploy Jira Service Desk with a self-service FAQ, triage automation, and direct integration to the HRIS.", correct: true,
+          feedback: "That's OPS-46. I designed the spec, implemented Jira Service Management as the HR backbone, wired it into our internal platform, and hit a 4.75/5 CSAT score — maintained even through a union crisis. 10,578 requests were deflected by the FAQ alone; only 116 needed escalation.",
+          kpi: "CSAT 4.75/5 — 10,578 TICKETS DEFLECTED" },
+        { text: "Ignore it and focus on strategy.", correct: false,
+          feedback: "Strategy without operational credibility is just a slide deck.", kpi: null }
+      ]
+    },
+    {
+      icon: "🛡️",
+      title: "The Compliance Labyrinth",
+      brief: `You're hiring across <em>Switzerland, France, Italy, Malta</em>. Labour law, A1 certificates, cross-border tax scales, GDPR + nLPD data protection. One wrong contract = a legal claim. What's your approach?`,
+      choices: [
+        { text: "Hire an external law firm at €400/hour for every hire.", correct: false,
+          feedback: "Unsustainable at scale. And it pushes HR out of the decision loop instead of making it a strategic partner.", kpi: null },
+        { text: "Encode the law directly into the HRIS — compliance by design.", correct: true,
+          feedback: "That's my 'Legal-to-Code' approach. I encoded Swiss labour law (LTr rest periods, Art. 329a/b CO vacation accrual, Art. 336b CO dismissal rules) directly into the system. Zero compliance incidents across 11 cantons and 3 countries — and the audit trail was clean enough for an independent audit to sign off.",
+          kpi: "0 INCIDENTS — 11 CANTONS, 3 COUNTRIES" },
+        { text: "Restrict hiring to one country to simplify.", correct: false,
+          feedback: "You just killed your talent pool. Compliance is a design problem, not a geography problem.", kpi: null }
+      ]
+    },
+    {
+      icon: "🧭",
+      title: "The Culture Cliff",
+      brief: `A restructuring is announced. Attrition risk is high, the union is at the door, and your fully-remote team is starting to feel like strangers. Culture is fragile. What do you do?`,
+      choices: [
+        { text: "Announce the layoffs and hope for the best.", correct: false,
+          feedback: "Cold restructuring is how you lose the people you wanted to keep — and how you earn a reputation you'll never shake.", kpi: null },
+        { text: "Negotiate a social plan with the union, deploy neutral confidential HR partner channels, and build recognition loops into the system.", correct: true,
+          feedback: "I negotiated directly with Syndicom on the social plan, implemented it calmly, and kept the HR Service Desk CSAT at 4.75/5 through the entire crisis. I also built the offboarding middleware (SODF) that generated every SECO form, payslip and final statement automatically — clean, fair, and auditable.",
+          kpi: "SOCIAL PLAN NEGOTIATED — CSAT PRESERVED" },
+        { text: "Freeze all communication until things settle.", correct: false,
+          feedback: "Silence in a remote team reads as abandonment. Psychological safety dies within days.", kpi: null }
+      ]
+    },
+    {
+      icon: "🎮",
+      title: "Final Boss — The Interview",
+      brief: `Final round. The founder leans back and asks: <em>"We could hire an HR lead with 15 years in banking. Why should we pick someone from the food-delivery world?"</em>`,
+      choices: [
+        { text: "Because I have more HR certifications than the other candidates.", correct: false,
+          feedback: "Certifications open the door. They don't close a hire. He's not buying a diploma — he's buying a partner who can scale his studio.", kpi: null },
+        { text: "Because I'm willing to work for less than a traditional CHRO.", correct: false,
+          feedback: "That tells him you don't value your own work — so why would he? Price is not a positioning strategy at this level.", kpi: null },
+        { text: "Because HR in a remote game studio isn't policy enforcement — it's infrastructure for trust, velocity and creative retention. And because I was born into this culture: first computer a Commodore 64, builder of Point 6 in Geneva in 1996, player of Ultima Online, StarCraft and Counter-Strike for thirty years. I don't need to learn your players. I am one.", correct: true,
+          feedback: "That's the answer. A studio doesn't need an HR admin — it needs someone who understands that great games are made by teams that feel safe, aligned, and fast. I've built that infrastructure before, at 1,200 people. And I've been a player since before most of your team was born.",
+          kpi: "YOU FOUND YOUR HR LEAD" }
+      ]
+    }
+  ];
+
+  let current = 0, trust = 100, xp = 0;
+
+  window.showView = function (id) {
+    ['hero', 'game', 'victory'].forEach(function (s) {
+      var el = document.getElementById(s);
+      if (el) el.style.display = 'none';
+    });
+    var target = document.getElementById(id);
+    if (!target) return;
+    target.style.display = (id === 'game') ? 'block' : (id === 'hero' ? 'flex' : 'block');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  window.startGame = function () {
+    window.showView('game');
+    current = 0; trust = 100; xp = 0;
+    renderLevel();
+  };
+
+  window.skipToCV = function () {
+    window.showView('victory');
+  };
+
+  function renderLevel() {
+    var lvl = LEVELS[current];
+    document.getElementById('hud-mission').textContent = 'MISSION ' + String(current + 1).padStart(2, '0') + ' / ' + String(LEVELS.length).padStart(2, '0');
+    document.getElementById('hud-title').textContent = lvl.title;
+    document.getElementById('sceneIcon').textContent = lvl.icon;
+    document.getElementById('sceneBrief').innerHTML = lvl.brief;
+    document.getElementById('progressBar').style.width = (current / LEVELS.length * 100) + '%';
+
+    var choicesEl = document.getElementById('choices');
+    choicesEl.innerHTML = '';
+    document.getElementById('feedback').className = 'feedback';
+    document.getElementById('nextWrap').style.display = 'none';
+
+    lvl.choices.forEach(function (c, i) {
+      var btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.innerHTML = '<span class="key">' + String.fromCharCode(65 + i) + ')</span><span>' + c.text + '</span>';
+      btn.onclick = function () { pickChoice(i, btn); };
+      choicesEl.appendChild(btn);
+    });
+  }
+
+  function pickChoice(idx, btn) {
+    var lvl = LEVELS[current];
+    var choice = lvl.choices[idx];
+    var allButtons = document.querySelectorAll('.choice');
+    allButtons.forEach(function (b) { b.disabled = true; });
+
+    var fb = document.getElementById('feedback');
+    var fbLabel = document.getElementById('fbLabel');
+    var fbText = document.getElementById('fbText');
+    var fbKpi = document.getElementById('fbKpi');
+    fbKpi.innerHTML = '';
+
+    if (choice.correct) {
+      btn.classList.add('correct');
+      fb.className = 'feedback show success';
+      fbLabel.textContent = '◉ SUCCESS';
+      xp += 20;
+      trust = Math.min(100, trust + 5);
+      if (choice.kpi) fbKpi.innerHTML = '<div class="kpi-badge">' + choice.kpi + '</div>';
+    } else {
+      btn.classList.add('wrong');
+      lvl.choices.forEach(function (c, i) { if (c.correct) allButtons[i].classList.add('correct'); });
+      fb.className = 'feedback show fail';
+      fbLabel.textContent = '✕ NOT QUITE';
+      trust = Math.max(0, trust - 15);
+    }
+    fbText.innerHTML = choice.feedback;
+    document.getElementById('statTrust').textContent = trust;
+    document.getElementById('statXp').textContent = xp;
+    document.getElementById('progressBar').style.width = ((current + 1) / LEVELS.length * 100) + '%';
+
+    document.getElementById('nextWrap').style.display = 'flex';
+    document.querySelector('#nextWrap .btn').textContent = (current === LEVELS.length - 1) ? 'See Results ▶' : 'Next Mission ▶';
+  }
+
+  window.nextLevel = function () {
+    current++;
+    if (current >= LEVELS.length) { window.showView('victory'); return; }
+    renderLevel();
+  };
+
+  /* ============================================================
+     PDF GENERATION
+     Fix: image.js declares photoBase64 / signatureBase64 as top-level
+     `const`, which does NOT attach them to `window`. We must reference
+     them directly via `typeof` — this works even in strict mode.
+     ============================================================ */
+  function getImageData(name) {
+    try {
+      if (name === 'photo' && typeof photoBase64 !== 'undefined' && photoBase64) return photoBase64;
+      if (name === 'signature' && typeof signatureBase64 !== 'undefined' && signatureBase64) return signatureBase64;
+    } catch (e) { /* not defined */ }
+    return null;
+  }
+
+  function injectImagesIntoTemplates() {
+    var photo = getImageData('photo');
+    var signature = getImageData('signature');
+
+    var photoSlot = document.getElementById('cover-photo-slot');
+    if (photoSlot && photo && photo.length > 100) {
+      photoSlot.outerHTML = '<img src="' + photo + '" alt="Thierry Blanc" class="profile-photo">';
+      console.log('✓ Photo injected into Cover Letter');
+    }
+    var sigSlot = document.getElementById('cover-signature-slot');
+    if (sigSlot && signature && signature.length > 100) {
+      sigSlot.outerHTML = '<img src="' + signature + '" alt="Signature" class="signature-img">';
+      console.log('✓ Signature injected into Cover Letter');
+    }
+  }
+
+  /* Retry injection until image.js is loaded (script tag order guarantees
+     it *should* be available, but retry defensively in case of slow disk). */
+  function scheduleImageInjection() {
+    var attempts = 0;
+    var maxAttempts = 15;
+    (function attempt() {
+      attempts++;
+      var photo = getImageData('photo');
+      if (photo && photo.length > 100) {
+        injectImagesIntoTemplates();
+        return;
+      }
+      if (attempts < maxAttempts) {
+        setTimeout(attempt, 200);
+      } else {
+        console.warn('image.js did not provide photoBase64 — Cover Letter will use initials circle.');
+      }
+    })();
+  }
+
+  async function renderPagesToPdf(pageIds, filename) {
+    if (document.fonts && document.fonts.ready) {
+      try { await document.fonts.ready; } catch (e) {}
+    }
+    // Ensure images are injected before capture
+    injectImagesIntoTemplates();
+
+    var jsPDF = window.jspdf.jsPDF;
+    var pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
+    var firstPage = true;
+
+    for (var i = 0; i < pageIds.length; i++) {
+      var el = document.getElementById(pageIds[i]);
+      if (!el) continue;
+      var canvas = await html2canvas(el, {
+        scale: 2, useCORS: true, allowTaint: false,
+        backgroundColor: '#ffffff', logging: false,
+        windowWidth: el.offsetWidth, windowHeight: el.offsetHeight
+      });
+      var imgData = canvas.toDataURL('image/jpeg', 0.94);
+      if (!firstPage) pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+      firstPage = false;
+    }
+    pdf.save(filename);
+  }
+
+  async function handleDownload(btn, pageIds, filename) {
+    btn.classList.add('loading');
+    var titleEl = btn.querySelector('.dl-title');
+    var originalTitle = titleEl.textContent;
+    titleEl.textContent = 'GENERATING…';
+    try {
+      await renderPagesToPdf(pageIds, filename);
+    } catch (e) {
+      console.error(e);
+      alert('PDF generation failed: ' + e.message);
+    } finally {
+      btn.classList.remove('loading');
+      titleEl.textContent = originalTitle;
+    }
+  }
+
+  window.downloadCoverLetter = function (btn) { handleDownload(btn, ['pdf-cover'], 'Thierry_Blanc_Cover_Letter_HR_Lead.pdf'); };
+  window.downloadCV = function (btn) { handleDownload(btn, ['pdf-cv-1', 'pdf-cv-2', 'pdf-cv-3'], 'Thierry_Blanc_CV_HR_Lead.pdf'); };
+  window.downloadAnnex = function (btn) { handleDownload(btn, ['pdf-annex-1', 'pdf-annex-2', 'pdf-annex-3', 'pdf-annex-4'], 'Thierry_Blanc_Technical_Annex_HR_Lead.pdf'); };
+
+  // Kick off image injection as soon as DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scheduleImageInjection);
+  } else {
+    scheduleImageInjection();
+  }
+  window.addEventListener('load', scheduleImageInjection);
+})();
+</script>
+
+</body>
+</html>
